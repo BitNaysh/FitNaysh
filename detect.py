@@ -5,5 +5,5 @@ import numpy as np
 
 
 class fitNaysh():
-    def __init__(self) -> None:
+    def __init__(self):
         pass
