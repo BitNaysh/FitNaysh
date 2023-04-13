@@ -1,8 +1,6 @@
-
 import cv2
 import mediapipe as mp
 import numpy as np
-
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
@@ -13,12 +11,12 @@ def calculate_angle(a,b,c):
     c = np.array(c) # End
     
     radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-    squat_angle = np.abs(radians*180.0/np.pi)
+    curl_angle = np.abs(radians*180.0/np.pi)
     
-    if squat_angle >180.0:
-        squat_angle = 360-squat_angle
+    if curl_angle >180.0:
+        curl_angle = 360-curl_angle
         
-    return squat_angle 
+    return curl_angle 
 
 cap = cv2.VideoCapture(0)
 
@@ -40,9 +38,9 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
         try:
             landmarks = results.pose_landmarks.landmark
             
-            left_hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
-            left_knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
-            left_ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x,landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
+            left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+            left_elbow = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x,landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
+            left_wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
 
             '''nose = [landmarks[mp_pose.PoseLandmark.NOSE.value].x,landmarks[mp_pose.PoseLandmark.NOSE.value].y]
             left_eye_inner = [landmarks[mp_pose.PoseLandmark.LEFT_EYE_INNER.value].x,landmarks[mp_pose.PoseLandmark.LEFT_EYE_INNER.value].y]
@@ -79,19 +77,19 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             right_foot_index = [landmarks[mp_pose.PoseLandmark.RIGHT_FOOT_INDEX.value].x,landmarks[mp_pose.PoseLandmark.RIGHT_FOOT_INDEX.value].y]'''
 
 
-            squat_angle = calculate_angle(left_hip, left_knee, left_ankle)
+            curl_angle = calculate_angle(left_shoulder, left_elbow, left_wrist)
             
-            cv2.putText(image, str(squat_angle), 
-                           tuple(np.multiply(left_knee, [640, 480]).astype(int)), 
+            cv2.putText(image, str(curl_angle), 
+                           tuple(np.multiply(left_elbow, [640, 480]).astype(int)), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                 )
             
             # Add more logic here based on different exercises 
             # Currently only curl counter implemented
-            if squat_angle >140:
-                stage = "UP"
-            if squat_angle < 90 and stage =='UP':
-                stage="DOWN"
+            if curl_angle > 160:
+                stage = "down"
+            if curl_angle < 30 and stage =='down':
+                stage="up"
                 counter +=1
                 print(counter)
                        
