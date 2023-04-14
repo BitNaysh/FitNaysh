@@ -59,9 +59,9 @@ class fitNaysh():
                                 )
         cv2.imshow('Counter', image)
     
-    def measure_dist(self,a,b):
-        x1, y1, z1 = a.x, a.y, a.z
-        x2, y2, z2 = b.x, b.y, b.z
+    def measure_dist(self, landmarks):
+        x1, y1, z1 = landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].y, landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].z
+        x2, y2, z2 = landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].x, landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].y, landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].z
         
         distance=math.sqrt((x1-x2)**2+(y1-y2)**2+(z1-z2)**2)
         
@@ -112,8 +112,12 @@ class fitNaysh():
             self.exit_cap()
     
     def squat_counter(self):
-        max_backl=0
         self.start_cap()
+        max_backl=0
+        counter=500
+        frame_counter=0
+        frame_heel=None
+
         with self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
             while self.cap.isOpened():
                 ret, frame = self.cap.read()
@@ -134,44 +138,54 @@ class fitNaysh():
                     left_hip = [landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].y]
                     left_knee = [landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].y]
                     left_ankle = [landmarks[self.mp_pose.PoseLandmark.LEFT_ANKLE.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
+                    left_heel = [landmarks[self.mp_pose.PoseLandmark.LEFT_HEEL.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_HEEL.value].y]
 
-                    back_l = self.measure_dist(left_shoulder, left_hip)
+                    back_l = self.measure_dist(landmarks)
 
-                    curl_angle = self.calculate_angle(left_hip, left_knee, left_ankle)                    
+                    if counter > 0 and back_l != 0:
+                        max_backl=(back_l+max_backl)
+                        counter-=1
+                    elif counter == 0:
+                        max_backl=max_backl/500
+                        counter=-1
+                        print("START")
 
-                    heel_angle = self.calculate_angle(left_knee, left_ankle, left_foot_index)
+                    if frame_counter == 30:
+                        frame_counter=0
+                        frame_heel=left_heel
+                    frame_counter+=1
 
-                    cv2.putText(image, str(curl_angle), 
+                    knee_angle = self.calculate_angle(left_hip, left_knee, left_ankle)               
+
+                    heel_angle = self.calculate_angle(left_heel, left_foot_index, frame_heel)
+
+                    cv2.putText(image, str(knee_angle), 
                                 tuple(np.multiply(left_knee, [640, 480]).astype(int)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                         )
-                    
+                    cv2.putText(image, str(heel_angle), 
+                                tuple(np.multiply(left_heel, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
                     cv2.putText(image, str(back_l), 
                                 tuple(np.multiply(left_shoulder, [640, 480]).astype(int)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                         )
-                    
-                    cv2.putText(image, str(heel_angle), 
-                                tuple(np.multiply(left_ankle, [640, 480]).astype(int)), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                                        )
-
-                    if back_l > max_backl:
-                        max_backl = back_l
-                    elif back_l < 0.8*max_backl:
-                        print("Straighten your back")
-                    
-                    if heel_angle < 75:
-                        print("Do not squat so LOW")
-
-                    if curl_angle > 140:
+                                        
+                    if knee_angle > 140:
                         self.stage = "up"
-                    if curl_angle < 90 and self.stage =='up':
+                    if knee_angle < 90 and self.stage =='up':
                         self.stage="down"
                         self.counter +=1
                         print(self.counter)
-                    if self.stage=="down" and heel_angle>90:
-                        print("Make sure your heels are toughing the ground")
+                    elif back_l < 0.9*max_backl and counter < 0:
+                        print("Straighten your back")
+                    
+                    if knee_angle < 80:
+                        print("Do not squat so LOW")
+
+                    if heel_angle > 20:
+                        print("Make sure your heels are touching the ground")
                             
                 except:
                     pass
@@ -181,9 +195,13 @@ class fitNaysh():
                 if cv2.waitKey(10) & 0xFF == ord('q'):
                     break
             self.exit_cap()
+
     
     def deadlift_counter(self):
         self.start_cap()
+        max_backl=0
+        counter=500
+
         with self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
             while self.cap.isOpened():
                 ret, frame = self.cap.read()
@@ -203,19 +221,35 @@ class fitNaysh():
                     left_hip = [landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].y]
                     left_knee = [landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].y]
 
-                    curl_angle = self.calculate_angle(left_shoulder, left_hip, left_knee)
+                    hip_angle = self.calculate_angle(left_shoulder, left_hip, left_knee)
                     
-                    cv2.putText(image, str(curl_angle), 
-                                tuple(np.multiply(left_knee, [640, 480]).astype(int)), 
+                    back_l = self.measure_dist(landmarks)
+                    if counter > 0 and back_l != 0:
+                        max_backl=(back_l+max_backl)
+                        counter-=1
+                    elif counter == 0:
+                        max_backl=max_backl/500
+                        counter=-1
+                        print("START")
+
+                    cv2.putText(image, str(hip_angle), 
+                                tuple(np.multiply(left_hip, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+                    cv2.putText(image, str(back_l), 
+                                tuple(np.multiply(left_shoulder, [640, 480]).astype(int)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                         )
                     
-                    if curl_angle > 150:
+                    if hip_angle > 150:
                         self.stage = "up"
-                    if curl_angle < 60 and self.stage =='up':
+                    if hip_angle < 75 and self.stage =='up':
                         self.stage="down"
                         self.counter +=1
                         print(self.counter)
+                    elif back_l < 0.8*max_backl and counter < 0:
+                        print("Straighten your back")
+
                             
                 except:
                     pass

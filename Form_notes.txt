@@ -26,4 +26,3 @@ ankle
 toe
 
 distance from shoulder to hip at everyframe should be 80% of the maximum distance from shoulder to hip
-let the angle of the knee ankle toe should be around 60 degrees
