@@ -2,6 +2,7 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+import math
 
 
 class fitNaysh():
@@ -57,6 +58,14 @@ class fitNaysh():
                                 self.mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2) 
                                 )
         cv2.imshow('Counter', image)
+    
+    def measure_dist(self,a,b):
+        x1, y1, z1 = a.x, a.y, a.z
+        x2, y2, z2 = b.x, b.y, b.z
+        
+        distance=math.sqrt((x1-x2)**2+(y1-y2)**2+(z1-z2)**2)
+        
+        return distance
 
     def bicep_curl_counter(self):
         self.start_cap()
@@ -103,6 +112,7 @@ class fitNaysh():
             self.exit_cap()
     
     def squat_counter(self):
+        max_backl=0
         self.start_cap()
         with self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
             while self.cap.isOpened():
@@ -119,23 +129,49 @@ class fitNaysh():
                 try:
                     landmarks = results.pose_landmarks.landmark
                     
+                    left_shoulder = [landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+                    left_foot_index = [landmarks[self.mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value].y]
                     left_hip = [landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].y]
                     left_knee = [landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].y]
                     left_ankle = [landmarks[self.mp_pose.PoseLandmark.LEFT_ANKLE.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
 
-                    curl_angle = self.calculate_angle(left_hip, left_knee, left_ankle)
-                    
+                    back_l = self.measure_dist(left_shoulder, left_hip)
+
+                    curl_angle = self.calculate_angle(left_hip, left_knee, left_ankle)                    
+
+                    heel_angle = self.calculate_angle(left_knee, left_ankle, left_foot_index)
+
                     cv2.putText(image, str(curl_angle), 
                                 tuple(np.multiply(left_knee, [640, 480]).astype(int)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                         )
                     
+                    cv2.putText(image, str(back_l), 
+                                tuple(np.multiply(left_shoulder, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+                    
+                    cv2.putText(image, str(heel_angle), 
+                                tuple(np.multiply(left_ankle, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+
+                    if back_l > max_backl:
+                        max_backl = back_l
+                    elif back_l < 0.8*max_backl:
+                        print("Straighten your back")
+                    
+                    if heel_angle < 75:
+                        print("Do not squat so LOW")
+
                     if curl_angle > 140:
                         self.stage = "up"
                     if curl_angle < 90 and self.stage =='up':
                         self.stage="down"
                         self.counter +=1
                         print(self.counter)
+                    if self.stage=="down" and heel_angle>90:
+                        print("Make sure your heels are toughing the ground")
                             
                 except:
                     pass
