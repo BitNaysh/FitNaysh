@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# dataset
+Diet/recipes.csv
+
 # Distribution / packaging
 .Python
 build/
