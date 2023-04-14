@@ -1,0 +1,29 @@
+
+# Squats
+
+## landmarks required
+
+shoulder 
+hip
+knee
+heel 
+ankle
+toe
+
+distance from shoulder to hip at everyframe should be 80% of the maximum distance from shoulder to hip
+let the angle of the knee ankle toe should be 75 to 90 degrees
+feet should be parallel to each other and shoulder width apart
+
+# Deadlift
+
+## landmarks required
+
+shoulder 
+hip
+knee
+heel 
+ankle
+toe
+
+distance from shoulder to hip at everyframe should be 80% of the maximum distance from shoulder to hip
+let the angle of the knee ankle toe should be around 60 degrees
