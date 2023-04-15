@@ -14,7 +14,7 @@ def bicep_curl_view(request):
     retval, buffer = cv2.imencode('.jpg', bicep_curl.image)
     jpg_as_text = base64.b64encode(buffer).decode()
 
-    return render(request, 'bicep_curl.html', {'counter': counter, 'image': jpg_as_text})
+    return render(request, 'bicep_curl_video.html', {'counter': counter, 'image': jpg_as_text})
 
 def bicep_curl_video(request):
     bicep_curl = fitNaysh()
