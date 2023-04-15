@@ -7,9 +7,8 @@
 <body>
     <h1>Bicep Curl Counter</h1>
     <p>Counter value: {{ counter }}</p>
-    <video id="video-feed" src="data:image/jpeg;base64,{{ img_str }}"></video>
-</body>
-</html>
+    <video width="640", height="480" id="video-feed" src="data:image/jpeg;base64,{{ img_str }}"></video>
+
 
 <script>
     var video = document.getElementById('video-feed');
@@ -28,6 +27,8 @@
     }
   
     // call the updateVideo function to start updating the video
-    updateVideo();
+    window.onload()=updateVideo();
   </script>
   
+</body>
+</html>
