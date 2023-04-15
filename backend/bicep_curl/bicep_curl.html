@@ -1,0 +1,33 @@
+<!-- your_template.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bicep Curl Counter</title>
+</head>
+<body>
+    <h1>Bicep Curl Counter</h1>
+    <p>Counter value: {{ counter }}</p>
+    <video id="video-feed" src="data:image/jpeg;base64,{{ img_str }}"></video>
+</body>
+</html>
+
+<script>
+    var video = document.getElementById('video-feed');
+  
+    function updateVideo() {
+      // request the latest image from the server
+      fetch('/bicep-curl-video')
+        .then(response => response.json())
+        .then(data => {
+          // update the src of the video element
+          video.src = 'data:image/jpeg;base64,' + data.img_str;
+  
+          // call this function again in 100ms to update the video
+          setTimeout(updateVideo, 100);
+        });
+    }
+  
+    // call the updateVideo function to start updating the video
+    updateVideo();
+  </script>
+  
