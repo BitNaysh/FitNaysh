@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .detect import fitNaysh
 import base64
 import cv2
@@ -15,6 +15,7 @@ def bicep_curl_view(request):
     jpg_as_text = base64.b64encode(buffer).decode()
 
     return render(request, 'bicep_curl_video.html', {'counter': counter, 'image': jpg_as_text})
+
 
 def bicep_curl_video(request):
     bicep_curl = fitNaysh()
