@@ -14,7 +14,7 @@ class fitNaysh():
         self.cap = cv2.VideoCapture(0)
         self.counter = 0
         self.stage = None
-        self.self.image = None
+        self.image = None
 
     def calculate_angle(self,a,b,c):
         a = np.array(a) # First
