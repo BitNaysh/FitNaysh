@@ -14,6 +14,7 @@ class fitNaysh():
         self.cap = cv2.VideoCapture(0)
         self.counter = 0
         self.stage = None
+        self.self.image = None
 
     def calculate_angle(self,a,b,c):
         a = np.array(a) # First
@@ -38,26 +39,26 @@ class fitNaysh():
         self.cap.release()
         cv2.destroyAllWindows()
     
-    def UiElements(self,image,results):
-        cv2.rectangle(image, (0,0), (225,73), (245,117,16), -1)
+    def UiElements(self,results):
+        cv2.rectangle(self.image, (0,0), (225,73), (245,117,16), -1)
                 
-        cv2.putText(image, 'REPS', (15,12), 
+        cv2.putText(self.image, 'REPS', (15,12), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
-        cv2.putText(image, str(self.counter), 
+        cv2.putText(self.image, str(self.counter), 
                     (10,60), 
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255), 2, cv2.LINE_AA)
         
-        cv2.putText(image, 'STAGE', (65,12), 
+        cv2.putText(self.image, 'STAGE', (65,12), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, cv2.LINE_AA)
-        cv2.putText(image, self.stage, 
+        cv2.putText(self.image, self.stage, 
                     (60,60), 
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255), 2, cv2.LINE_AA)
         
-        self.mp_drawing.draw_landmarks(image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS,
+        self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS,
                                 self.mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2), 
                                 self.mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2) 
                                 )
-        cv2.imshow('Counter', image)
+        cv2.imshow('Counter', self.image)
     
     def measure_dist(self, landmarks):
         x1, y1, z1 = landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].y, landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].z
@@ -73,13 +74,13 @@ class fitNaysh():
             while self.cap.isOpened():
                 ret, frame = self.cap.read()
                 
-                image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                image.flags.writeable = False
+                self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.image.flags.writeable = False
             
-                results = pose.process(image)
+                results = pose.process(self.image)
             
-                image.flags.writeable = True
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                self.image.flags.writeable = True
+                self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
                 
                 try:
                     landmarks = results.pose_landmarks.landmark
@@ -90,7 +91,7 @@ class fitNaysh():
 
                     curl_angle = self.calculate_angle(left_shoulder, left_elbow, left_wrist)
                     
-                    cv2.putText(image, str(curl_angle), 
+                    cv2.putText(self.image, str(curl_angle), 
                                 tuple(np.multiply(left_elbow, [640, 480]).astype(int)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                         )
@@ -105,7 +106,7 @@ class fitNaysh():
                 except:
                     pass
                 
-                self.UiElements(image=image,results=results)               
+                self.UiElements(results=results)               
 
                 if cv2.waitKey(10) & 0xFF == ord('q'):
                     break
