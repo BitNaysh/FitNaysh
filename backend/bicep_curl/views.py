@@ -1,5 +1,6 @@
-from django.shortcuts import render,JsonResponse
-from detect import fitNaysh
+from django.shortcuts import render
+from django.http import JsonResponse
+from .detect import fitNaysh
 import base64
 import cv2
 import json
