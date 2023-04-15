@@ -58,7 +58,7 @@ class fitNaysh():
                                 self.mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2), 
                                 self.mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2) 
                                 )
-        cv2.imshow('Counter', self.image)
+        #cv2.imshow('Counter', self.image)
     
     def measure_dist(self, landmarks):
         x1, y1, z1 = landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].y, landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].z
