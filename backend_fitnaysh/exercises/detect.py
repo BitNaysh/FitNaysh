@@ -106,7 +106,20 @@ class fitNaysh():
                 except:
                     pass
                 
-                self.UiElements(results=results)               
+                self.UiElements(results=results)
+                if not ret:
+                    break
+
+                # Encode the frame as jpeg
+                _, jpeg = cv2.imencode('.jpg', self.image)
+
+                # Write the boundary and content type headers
+                yield b'--frame\r\n'
+                yield b'Content-Type: image/jpeg\r\n\r\n'
+
+                # Write the frame data
+                yield jpeg.tobytes()
+                yield b'\r\n'               
 
                 if cv2.waitKey(10) & 0xFF == ord('q'):
                     break
