@@ -9,12 +9,21 @@ class fitNaysh():
     def __init__(self):
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
+        self.counter = 0
+        self.stage = None
+        self.image = None
+        self.back_form = None
+        self.heelIsGrounded = None
+        self.not_low_squat = None
     
     def start_cap(self):
         self.cap = cv2.VideoCapture(0)
         self.counter = 0
         self.stage = None
         self.image = None
+        self.back_form = None
+        self.heelIsGrounded = None
+        self.not_low_squat = None
 
     def calculate_angle(self,a,b,c):
         a = np.array(a) # First
@@ -107,6 +116,195 @@ class fitNaysh():
                     pass
                 
                 self.UiElements(results=results)
+                if not ret:
+                    break
+
+                # Encode the frame as jpeg
+                _, jpeg = cv2.imencode('.jpg', self.image)
+
+                # Write the boundary and content type headers
+                yield b'--frame\r\n'
+                yield b'Content-Type: image/jpeg\r\n\r\n'
+
+                # Write the frame data
+                yield jpeg.tobytes()
+                yield b'\r\n'               
+
+                if cv2.waitKey(10) & 0xFF == ord('q'):
+                    break
+            self.exit_cap()
+    
+    def squat_counter(self):
+        self.start_cap()
+        max_backl=0
+        counter=500
+        frame_counter=0
+        frame_heel=None
+
+        with self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+            while self.cap.isOpened():
+                ret, frame = self.cap.read()
+                
+                self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.image.flags.writeable = False
+            
+                results = pose.process(self.image)
+            
+                self.image.flags.writeable = True
+                self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
+                
+                try:
+                    landmarks = results.pose_landmarks.landmark
+                    
+                    left_shoulder = [landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+                    left_foot_index = [landmarks[self.mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_FOOT_INDEX.value].y]
+                    left_hip = [landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].y]
+                    left_knee = [landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].y]
+                    left_ankle = [landmarks[self.mp_pose.PoseLandmark.LEFT_ANKLE.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
+                    left_heel = [landmarks[self.mp_pose.PoseLandmark.LEFT_HEEL.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_HEEL.value].y]
+
+                    back_l = self.measure_dist(landmarks)
+
+                    if counter > 0 and back_l != 0:
+                        max_backl=(back_l+max_backl)
+                        counter-=1
+                    elif counter == 0:
+                        max_backl=max_backl/500
+                        counter=-1
+                        print("START")
+
+                    if frame_counter == 30:
+                        frame_counter=0
+                        frame_heel=left_heel
+                    frame_counter+=1
+
+                    knee_angle = self.calculate_angle(left_hip, left_knee, left_ankle)               
+
+                    heel_angle = self.calculate_angle(left_heel, left_foot_index, frame_heel)
+
+                    cv2.putText(self.image, str(knee_angle), 
+                                tuple(np.multiply(left_knee, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+                    cv2.putText(self.image, str(heel_angle), 
+                                tuple(np.multiply(left_heel, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+                    cv2.putText(self.image, str(back_l), 
+                                tuple(np.multiply(left_shoulder, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+                                        
+                    if knee_angle > 140:
+                        self.stage = "up"
+                    if knee_angle < 90 and self.stage =='up':
+                        self.stage="down"
+                        self.counter +=1
+                        print(self.counter)
+                    
+                    if back_l < 0.9*max_backl and counter < 0:
+                        print("Straighten your back")
+                        self.back_form = False
+                    else:
+                        self.back_form = True
+                    
+                    if knee_angle < 80:
+                        print("Do not squat so LOW")
+                        self.not_low_squat = False
+                    else:
+                        self.not_low_squat = True
+
+                    if heel_angle > 10:
+                        print("Make sure your heels are touching the ground")
+                        self.heelIsGrounded = False
+                    else:
+                        self.heelIsGrounded = True
+                except:
+                    pass
+                
+                self.UiElements(results=results)
+
+                if not ret:
+                    break
+
+                # Encode the frame as jpeg
+                _, jpeg = cv2.imencode('.jpg', self.image)
+
+                # Write the boundary and content type headers
+                yield b'--frame\r\n'
+                yield b'Content-Type: image/jpeg\r\n\r\n'
+
+                # Write the frame data
+                yield jpeg.tobytes()
+                yield b'\r\n'               
+
+                if cv2.waitKey(10) & 0xFF == ord('q'):
+                    break
+            self.exit_cap()
+    
+    def deadlift_counter(self):
+        self.start_cap()
+        max_backl=0
+        counter=500
+
+        with self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+            while self.cap.isOpened():
+                ret, frame = self.cap.read()
+                
+                self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.image.flags.writeable = False
+            
+                results = pose.process(self.image)
+            
+                self.image.flags.writeable = True
+                self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
+                
+                try:
+                    landmarks = results.pose_landmarks.landmark
+                    
+                    left_shoulder = [landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+                    left_hip = [landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_HIP.value].y]
+                    left_knee = [landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].x,landmarks[self.mp_pose.PoseLandmark.LEFT_KNEE.value].y]
+
+                    hip_angle = self.calculate_angle(left_shoulder, left_hip, left_knee)
+                    
+                    back_l = self.measure_dist(landmarks)
+                    if counter > 0 and back_l != 0:
+                        max_backl=(back_l+max_backl)
+                        counter-=1
+                    elif counter == 0:
+                        max_backl=max_backl/500
+                        counter=-1
+                        print("START")
+
+                    cv2.putText(self.image, str(hip_angle), 
+                                tuple(np.multiply(left_hip, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+                    cv2.putText(self.image, str(back_l), 
+                                tuple(np.multiply(left_shoulder, [640, 480]).astype(int)), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                                        )
+                    
+                    if hip_angle > 150:
+                        self.stage = "up"
+                    if hip_angle < 75 and self.stage =='up':
+                        self.stage="down"
+                        self.counter +=1
+                        print(self.counter)
+                    
+                    if back_l < 0.8*max_backl and counter < 0:
+                        print("Straighten your back")
+                        self.back_form = False
+                    else:
+                        self.back_form = True
+
+                            
+                except:
+                    pass
+                
+                self.UiElements(results=results)
+                
                 if not ret:
                     break
 
